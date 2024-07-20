@@ -1,0 +1,402 @@
+#include <Wire.h>
+#include <Keypad.h>
+#include <Servo.h>
+#include <EEPROM.h>
+#include <LiquidCrystal_I2C.h>
+#include <SoftwareSerial.h>
+SoftwareSerial SIM900A(A3,A4);
+
+//int Button = 10;          
+const byte numRows = 4;         
+const byte numCols = 4;         
+char keymap[numRows][numCols] =
+{
+  {'1', '2', '3', 'A'},
+  {'4', '5', '6', 'B'},
+  {'7', '8', '9', 'C'},
+  {'*', '0', '#', 'D'}
+};
+char option;
+char presskey;
+char keypressed; 
+char key;                
+char code[] = {'5', '4', '3', '2','1'}; 
+char check1[sizeof(code)];  
+char check2[sizeof(code)];  
+short a = 0, i = 0, s = 0, j = 0; 
+byte rowPins[numRows] = {2, 3, 4, 5};  
+byte colPins[numCols] = {6, 7, 8, 9}; 
+LiquidCrystal_I2C lcd(0x27, 16, 2);
+Keypad myKeypad = Keypad(makeKeymap(keymap), rowPins, colPins, numRows, numCols);
+Servo myservo;
+Servo myservotwo;
+int otp;
+int dub;
+String mobileNumber = "";
+String otpstring = "";
+const int trigPin1 = A0;//brown//door1
+const int echoPin1 = A1;//vilot//door1
+const int trigPintwo = 12;//green//door2
+const int echoPintwo = 13;//vilot//door2
+void setup()
+{
+  SIM900A.begin(9600);
+  lcd.init();                      
+  lcd.backlight();
+  lcd.begin (16, 2);
+  lcd.setCursor(0, 0);
+  lcd.setCursor(1 , 1);
+ Serial.begin(9600);
+  lcd.setCursor(0, 0);
+ // pinMode(Button, INPUT);
+  myservo.attach(11);
+  myservo.write(0);
+  myservotwo.attach(10);
+  
+ // myservotwo.write(0);
+ myservotwo.write(0);
+// pinMode(TOUCH_SENSOR_PIN, INPUT);  
+//pinMode(TOUCH_SENSOR_PIN_TWO,INPUT);
+ pinMode(trigPin1, OUTPUT);
+  pinMode(trigPintwo, OUTPUT);
+  pinMode(echoPin1, INPUT);
+  pinMode(echoPintwo, INPUT);
+  delay(1000);
+}
+void  loop()
+{
+  int distance = measureDistance(trigPin1, echoPin1);
+  int distancetwo = measureDistance(trigPintwo, echoPintwo);
+  Serial.print("Distance Sensor 1: ");
+  Serial.print(distance);
+  Serial.println(" cm");
+  Serial.print("Distance Sensor 2: ");
+  Serial.print(distancetwo);
+  Serial.println(" cm");
+   lcd.print("WELCOME TO ESEC");
+  lcd.setCursor(0, 1);
+ lcd.print("HUB STORE");
+  delay(1000);
+  lcd.clear();
+  lcd.setCursor(0,0);
+  lcd.print("BOX-1->press 1");
+  lcd.setCursor(0, 1);
+  lcd.print("BOX-2->press 2");
+  delay(1000);
+  lcd.clear();
+  static char userinput[11];
+   static int count = 0;
+   char number;
+ option=myKeypad.getKey(); 
+ if((option=='1')&&((distance>=7)&&(distance<20)))
+ {
+   lcd.setCursor(0, 0);
+   lcd.clear();
+   lcd.print("YOU PRESSED");
+    lcd.setCursor(0, 1);
+  lcd.print(" BOX 1 ");
+  lcd.setCursor(1 , 1);
+ Serial.begin(9600);
+   delay(1000);
+     lcd.clear();
+     boxonedev();
+  }
+  else if((option=='1')&&(( distance<=7)||(distance>1000)))
+  {
+    Serial.println("");
+    Serial.println("first sensor high");
+     boxonecos(); 
+     
+ }   
+ else if((option=='2')&&((distancetwo>=7)&&(distancetwo<20)))
+ {
+  
+   lcd.clear();
+    lcd.setCursor(0, 0);
+     lcd.print("YOU PRESSED");
+  lcd.setCursor(1 , 1);
+ Serial.begin(9600);
+  lcd.print("BOX2"); 
+  delay(2000);
+  lcd.clear(); 
+ boxtwodev();                
+    
+  }
+  else if((option=='2')&&((distancetwo<=7)||(distancetwo>1000)))
+  {
+   
+     Serial.println("SCUSSS");
+   boxtwocos();
+ }
+ else
+ {
+
+}}
+float measureDistance(int trigPin, int echoPin) {
+  digitalWrite(trigPin, LOW);
+  delayMicroseconds(2);
+  digitalWrite(trigPin, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(trigPin, LOW);
+  long duration = pulseIn(echoPin, HIGH);
+  int distance_cm = duration * 0.034 / 2;
+  return distance_cm;
+}
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+void ReadCode() {               
+  i = 0;                    
+  a = 0;
+  j = 0;
+  while (keypressed != 'A') {                                   
+    keypressed = myKeypad.getKey();
+    if (keypressed != NO_KEY && keypressed != 'A' ) {     
+      lcd.setCursor(j, 1);                                
+      lcd.print("*");
+      j++;
+      if (keypressed == code[i] && i < sizeof(code)) {      
+        a++;
+        i++;
+      }
+      else
+        a--;                                               
+    }
+  }
+  keypressed = NO_KEY;
+}
+void OpenDoor() {          
+  lcd.clear();
+  delay(1000);
+  lcd.setCursor(1, 0);
+  lcd.print("Access Granted");
+  lcd.setCursor(4, 1);
+  lcd.print("Open...");
+  myservo.write(90);
+ delay(7000);
+  myservo.write(0);
+  lcd.clear(); 
+}
+void OpenDoortwo()
+{
+  lcd.clear();
+  delay(1000);
+  lcd.setCursor(1, 0);///////////////////////////////////////////////////////////////////////////////////////////////////////////
+  lcd.print("Access Granted");
+  lcd.setCursor(4, 1);
+  lcd.print("Open...");
+  myservotwo.write(90);
+  delay(7000);
+  myservotwo.write(0);
+  lcd.clear();
+   lcd.setCursor(1, 0);
+      lcd.print("THANK YOU");
+      delay(2000);
+      lcd.clear();
+}
+void getotp() {
+ 
+  String y = "";
+  int a = y.length();
+  while (a < 4) {
+    char customKey = myKeypad.getKey();
+    if (customKey) {
+      lcd.setCursor(0, 1);
+      y = y + customKey;
+      lcd.print(y);
+      a = y.length();
+     
+
+    }
+  }
+  Serial.print("Entered OTP is ");
+  Serial.println(y);
+  if (otpstring == y) {
+    lcd.setCursor(0, 0);
+    lcd.print(" ACCESS GRANTED");
+    lcd.setCursor(0, 1);
+    lcd.print("DOOR OPEN");
+   OpenDoor();  
+  } else {
+    lcd.setCursor(0, 0);
+    lcd.print(" ACCESS FAILED");
+    lcd.setCursor(0, 1);
+    lcd.print("TRY AGAIN");
+    delay(2000);
+  }
+}
+void getotptwo() {
+ 
+  String y = "";
+  int a = y.length();
+  while (a < 4) {
+    char customKey = myKeypad.getKey();
+    if (customKey) {
+      lcd.setCursor(0, 1);
+      y = y + customKey;
+      lcd.print(y);
+      a = y.length();
+     
+
+    }
+  }
+  Serial.print("Entered OTP is ");
+  Serial.println(y);
+  if (otpstring == y) {
+    lcd.setCursor(0, 0);
+    lcd.print(" ACCESS GRANTED");
+    lcd.setCursor(0, 1);
+    lcd.print("DOOR OPEN");
+   OpenDoortwo();   
+  } else {
+    lcd.setCursor(0, 0);
+    lcd.print(" ACCESS FAILED");
+    lcd.setCursor(0, 1);
+    lcd.print("TRY AGAIN");
+    delay(2000);
+  }
+}
+void boxtwocos()
+{
+lcd.clear();
+    delay(1000);
+    keypressed = myKeypad.getKey();
+     Serial.println(keypressed);
+  {
+
+    lcd.print(key);
+  }
+    lcd.setCursor(0, 0);
+  lcd.print("   OTP Based");
+  lcd.setCursor(0, 1);
+  lcd.print("   Door Lock");
+    otp = random(5000, 9999);
+    otpstring = String(otp);
+    Serial.println(otpstring);
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print(" OTP Sent to");
+    lcd.setCursor(0, 1);
+    Serial.print("OTP is ");
+    delay(100);
+    Serial.println(otpstring);
+    delay(100);
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print("Enter OTP :");
+    getotptwo();
+    
+  
+  }
+void boxonecos()
+{
+ lcd.clear();
+    delay(1000);
+    lcd.print("WELCOME");
+    delay(500);
+    keypressed = myKeypad.getKey();
+     Serial.println(keypressed);
+lcd.setCursor(0, 0);
+  lcd.print("   OTP Based");
+  lcd.setCursor(0, 1);
+  lcd.print("   Door Lock");
+    otp = random(1000, 4999);
+    otpstring = String(otp);
+    Serial.println(otpstring);////opt generation//////
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print(" OTP Sent to");
+    lcd.setCursor(0, 1);
+    lcd.print(" Your Mobile");
+    Serial.print("OTP is ");
+    delay(1000);
+    Serial.println(otpstring);
+    delay(100);
+   // SendSMS();
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print("ENTER OTP :");
+    getotp();
+  
+  }
+  void boxonedev()
+   {
+     lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print("ENTER PASSWORD-1");            
+    ReadCode();                        
+    if (a == sizeof(code))  
+    {    
+      OpenDoor();   
+      getmobilenumber();
+      delay(1000);       
+      }      
+    else {
+      lcd.clear();
+      lcd.setCursor(1, 0);
+      lcd.print("CODE"); 
+      lcd.setCursor(6, 0);
+      lcd.print("INCORRECT");
+    }
+ }
+ void   boxtwodev()
+   {
+lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print("ENTER PASSWORD-2");           
+    ReadCode();                         
+    if (a == sizeof(code))  
+    {     
+      OpenDoortwo();   
+      delay(1000);       
+      }      
+    else {
+      lcd.clear();
+      lcd.setCursor(1, 0);
+      lcd.print("CODE"); 
+      lcd.setCursor(6, 0);
+      lcd.print("INCORRECT");
+    }
+   
+  }
+  void getmobilenumber()
+  {
+    String mobileNumber="";
+    lcd.setCursor(0, 1);
+ lcd.print("Enter-mobile-no");
+ lcd.clear();
+    int temp=0;
+  while (key != 'A') { 
+ char key = myKeypad.getKey();
+ // if (key != NO_KEY){
+    if (key != 'A' && key != NO_KEY){ 
+      lcd.setCursor(temp, 1);                                
+      lcd.print(key);// Check if it's not the end of input
+      mobileNumber += key;
+      temp++; // Append the pressed key to the mobileNumber string
+    } 
+    key = NO_KEY;
+    
+ }}
+    
+  
+    
+  
+  void SendMessage(String s)
+{
+  String s1= "AT+CMGS=\"+91"+s1+"\"\r";
+  Serial.println ("Sending Message");
+  SIM900A.println("AT+CMGF=1");    //Sets the GSM Module in Text Mode
+  delay(1000);
+  Serial.println ("Set SMS Number");
+ // SIM900A.println("AT+CMGS=\"+6281542787536\"\r"); 
+  SIM900A.println(s1);//Mobile phone number to send message
+  delay(1000);
+  Serial.println ("Set SMS Content");
+  SIM900A.println("Good morning, how are you doing?");// Messsage content
+  delay(100);
+  Serial.println ("Finish");
+  SIM900A.println((char)26);// ASCII code of CTRL+Z
+  delay(1000);
+  Serial.println ("Message has been sent ->SMS Selesai dikirim");
+}
+   
+
